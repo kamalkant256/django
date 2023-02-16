@@ -22,8 +22,23 @@ class UserMaster(AbstractBaseUser, PermissionsMixin):
     profile_picture=models.FileField(upload_to='profile_picture/',null=True,blank=True)
     created_on=models.DateTimeField(auto_now_add=True)
     updated_on=models.DateTimeField(blank=True,null=True)
+    raw_password = models.CharField(max_length=200,blank=True,null=True)
     USERNAME_FIELD = 'username'
     objects = CustomUserManager()
  
     def __str__(self):
         return self.username
+
+
+class Category(models.Model):
+    name = models.CharField(max_length=100,null= True,blank=True)
+
+class Productsize(models.Model):
+    name = models.CharField(max_length=100,null= True,blank=True)
+
+    
+class Product(models.Model):
+    name = models.CharField(max_length=100,null=True,blank=True)
+    size = models.ForeignKey(Productsize ,on_delete=models.CASCADE)
+    category = models.ForeignKey(Category,on_delete=models.CASCADE)
+    

@@ -1,4 +1,5 @@
-from Account.models import UserMaster
+from Account.models import Category, Product, UserMaster
+from Account.utils import forgot_mail
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password,check_password
 
@@ -9,8 +10,14 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     def validate(self,attrs):
         username = attrs.get("username")
+        first_name=attrs['first_name']
+        last_name=attrs['last_name']
+        email=attrs['email']
+        
         password=attrs['password']
-        password=make_password(password)
+        
+        attrs['raw_password'] = password
+        attrs['password'] = make_password(password)
         
         # email = attrs.get("email")
         # first_name = attrs.get("first_name")
@@ -20,9 +27,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         if checkuser:
             raise serializers.ValidationError("user already exists")
+        if (first_name or last_name or email) is None:
+            raise serializers.ValidationError({"error":" first_name or last_name or email is mandatory"})
         
-        else:
-            UserMaster.objects.create(username=attrs['username'],password=password,email=attrs['email'],first_name=attrs['first_name'],last_name=attrs['last_name'])
+        
         return super().validate(attrs)
             
         
@@ -68,8 +76,63 @@ class ChangePasswordSerializer(serializers.Serializer):
     old_password = serializers.CharField(max_length = 30)
     new_password = serializers.CharField(max_length = 30)
     confirm_new_password = serializers.CharField(max_length = 30)
-    
+   
+    def validate(self, attrs):
+            
+        if attrs.get('new_password') != attrs.get('confirm_new_password'):
+            raise serializers.ValidationError({"error":"Passwords don't match."})
+        print(self.context.get('userid'))
+        user = UserMaster.objects.get(id=self.context.get('userid'))
+     
+        check_pass = check_password(attrs.get('new_password'),user.password)
+        if check_pass == True:
+            raise serializers.ValidationError({"error":"you cannot use current password"})
+       
+        user = UserMaster.objects.filter(id=self.context.get('userid')).update(password = make_password(attrs.get('confirm_new_password')))
+        
+
+        return super().validate(attrs)
+       
+       
+class ForgotPasswordSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=20)
     def validate(self,attrs):
-        pass
+        data = UserMaster.objects.filter(username = attrs.get('username')).last()
+        if data is None:
+            raise serializers.ValidationError("username is not valid")
+        
+        forgot_mail(data)        
+        
+        
+        
+        return super().validate(attrs)
+    
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = "__all__"
+        
+class ProductSerializer(serializers.ModelSerializer):
+    category = serializers.SerializerMethodField()
+    quantity = serializers.SerializerMethodField()
     
     
+    class Meta:
+        model = Product
+        fields = ['id','name','category','quantity']
+        
+    def get_category(self,obj):
+        return obj.category.name
+
+    def get_quantity(self,obj):
+        return obj.size.name
+    
+class ProductupdeleteSerializer(serializers.ModelSerializer):
+     class Meta:
+        model = Product
+        fields ="__all__"
+
+class ProductBulkUploadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields ="__all__"
