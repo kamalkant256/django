@@ -155,4 +155,4 @@ class ProductUploadCSV(generics.GenericAPIView):
     def post(self,request ,format=None):
         
         print(request.data)
-        return Response("kamalkant upadhyay")
+      
