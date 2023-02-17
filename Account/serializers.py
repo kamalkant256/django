@@ -1,7 +1,10 @@
+import json
 from Account.models import Category, Product, UserMaster
 from Account.utils import forgot_mail
 from rest_framework import serializers
 from django.contrib.auth.hashers import make_password,check_password
+from django.core.validators import FileExtensionValidator
+import pandas as pd
 
 class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
@@ -133,6 +136,37 @@ class ProductupdeleteSerializer(serializers.ModelSerializer):
         fields ="__all__"
 
 class ProductBulkUploadSerializer(serializers.ModelSerializer):
+    filename = serializers.FileField(validators=[FileExtensionValidator( ['CSV',] ) ])
     class Meta:
-        model = Product
-        fields ="__all__"
+            model = Product
+            fields =['filename']
+    def validate(self,attrs):
+        print(attrs.get('filename'),'aaaaaaaaaaaaaaa')
+        data = pd.read_csv(attrs.get('filename'))
+        df_to_json = data.to_json(orient="records")
+       
+        df_to_json = json.loads(df_to_json)
+        
+    
+            
+        
+        for row in df_to_json:
+            row['name'] = str(row['name'])
+            row['size_id'] = str(row['size_id'])
+            row['category_id'] = str(row['category_id'])
+            print(Product.objects.filter(name__iexact=row['name']),'dbjsvrfhuvsfuwy')
+            productname = Product.objects.filter(name__iexact=row['name']).last()
+        
+            if not productname:
+                data = Product()
+                data.name=row['name']
+                data.size_id = row['size_id']
+                data.category_id = row['category_id']
+                data.save()
+            
+            else:
+                
+                Product.objects.filter(name=row['name']).update(name=row['name'],size_id=row['size_id'],category_id=row['category_id'])
+        
+        
+        return super().validate(attrs)

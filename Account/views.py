@@ -153,6 +153,11 @@ class ProductUploadCSV(generics.GenericAPIView):
     serializer_class = ProductBulkUploadSerializer
     parser_classes = (FormParser, MultiPartParser)
     def post(self,request ,format=None):
+        serializer_data = self.serializer_class(data=request.data)
+        if serializer_data.is_valid():
+            context = {'status': True,'message':'Product successfully added',}
+        else:
+            context = {'status': False,'message': serializer_data.errors}
+        return Response(context, status=status.HTTP_200_OK)
         
-        print(request.data)
       
